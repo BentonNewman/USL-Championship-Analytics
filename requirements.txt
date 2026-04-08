@@ -1,0 +1,7 @@
+itscalledsoccer
+pandas
+numpy
+requests
+pgeocode
+geopy
+jupyter
