@@ -10,9 +10,11 @@ from typing import Final
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
-PROJECT_DIR: Final[Path] = Path(__file__).parent
+# scripts/ -> project root
+PROJECT_DIR: Final[Path] = Path(__file__).parent.parent
+NOTEBOOKS_DIR: Final[Path] = PROJECT_DIR / "notebooks"
 
-# Maps each notebook to the parquet(s) it is expected to write.
+# Maps each notebook to the parquet(s) it is expected to write (relative to PROJECT_DIR).
 # All three run in parallel — none share output files or intermediate state.
 NOTEBOOK_OUTPUTS: Final[dict[str, list[str]]] = {
     "USL_Championship_Game_Data.ipynb": ["data/games.parquet"],
@@ -27,16 +29,19 @@ def run_notebook(notebook: str) -> tuple[str, bool, str]:
     Uses sys.executable to invoke nbconvert from the active Python environment,
     avoiding PATH ambiguity when the script is run via `uv run`.
 
+    Kernel cwd is set to NOTEBOOKS_DIR so notebook-relative paths (../data/)
+    resolve identically whether run here or opened interactively in JupyterLab.
+
     The Game Data notebook calls both the ASA API and the Open-Meteo archive API
     for every venue; 600 s timeout reflects that worst-case load.
 
     Args:
-        notebook: Notebook filename relative to PROJECT_DIR.
+        notebook: Notebook filename (no directory prefix).
 
     Returns:
         Tuple of (notebook, success, message) for consolidated reporting in main.
     """
-    path = PROJECT_DIR / notebook
+    path = NOTEBOOKS_DIR / notebook
     if not path.exists():
         return notebook, False, f"notebook not found: {path}"
 
@@ -63,7 +68,7 @@ def run_notebook(notebook: str) -> tuple[str, bool, str]:
             ],
             capture_output=True,
             text=True,
-            cwd=PROJECT_DIR,
+            cwd=NOTEBOOKS_DIR,
         )
     except OSError as exc:
         return notebook, False, f"could not launch nbconvert: {exc}"

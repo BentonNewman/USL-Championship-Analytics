@@ -51,10 +51,14 @@ These notebooks target `uslc` by default. The `itscalledsoccer` package supports
 ## Project Structure
 
 ```
-USL_Championship_Game_Data.ipynb         Match results, xG, xPoints, weather, travel
-USL_Championship_Player_Data.ipynb       Outfield and goalkeeper player-season metrics
-USL_Championship_Team_Data.ipynb         Team-season aggregates and advanced metrics
-USL_Championship_Visualizations.ipynb    Team-focused analysis layer built on the above
+notebooks/
+  USL_Championship_Game_Data.ipynb         Match results, xG, xPoints, weather, travel
+  USL_Championship_Player_Data.ipynb       Outfield and goalkeeper player-season metrics
+  USL_Championship_Team_Data.ipynb         Team-season aggregates and advanced metrics
+  USL_Championship_Visualizations.ipynb    Team-focused analysis layer built on the above
+scripts/
+  update_parquets.py                       Runs all three data notebooks in parallel
+data/                                      Parquet outputs (gitignored, generated on run)
 ```
 
 ---
@@ -164,14 +168,20 @@ Dependencies are listed in [`requirements.txt`](requirements.txt) and are intent
 Open interactively:
 
 ```bash
-jupyter notebook USL_Championship_Game_Data.ipynb
+jupyter notebook notebooks/USL_Championship_Game_Data.ipynb
 ```
 
-Or execute headlessly and write outputs back to the file:
+Or execute all three data notebooks headlessly in parallel (recommended):
 
 ```bash
-jupyter nbconvert --to notebook --execute USL_Championship_Game_Data.ipynb \
-  --output USL_Championship_Game_Data.ipynb
+python scripts/update_parquets.py
+```
+
+Or execute a single notebook headlessly:
+
+```bash
+jupyter nbconvert --to notebook --execute notebooks/USL_Championship_Game_Data.ipynb \
+  --output notebooks/USL_Championship_Game_Data.ipynb
 ```
 
 ---
@@ -259,7 +269,7 @@ Full metric documentation: [americansocceranalysis.com](https://americansocceran
 - **API rate limits**: Be considerate with the ASA API. Avoid running the notebooks repeatedly in tight loops.
 - **Open-Meteo dependency**: The Game Data notebook depends on the [Open-Meteo](https://open-meteo.com) archive API for weather data. This is a separate free public service. Weather fetches gracefully degrade to `NaN` if the request fails.
 - **Future games**: The Game Data notebook filters to `status == "FullTime"`, so unplayed fixtures are excluded. Weather is only fetched for past dates.
-- **Notebook outputs are committed**: The `.ipynb` files include their last-executed output cells so the data is visible directly on GitHub without running anything. Re-execute locally to refresh against the latest API data.
+- **Notebook outputs**: This repo uses [`nbstripout`](https://github.com/kynan/nbstripout) — outputs are stripped automatically on commit. Re-execute the notebooks locally (or run `python scripts/update_parquets.py`) to populate `data/` and see results.
 - **Downstream analysis**: The three template notebooks are data-prep pipelines by design — they produce clean DataFrames and write parquet files. `USL_Championship_Visualizations.ipynb` is the provided analysis layer built on top of them. Add your own analysis cells there or create additional notebooks that read from `data/`.
 
 ---
