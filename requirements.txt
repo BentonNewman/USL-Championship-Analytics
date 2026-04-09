@@ -1,6 +1,7 @@
 itscalledsoccer
 pandas
 numpy
+pyarrow
 requests
 pgeocode
 geopy

@@ -41,6 +41,12 @@ desktop.ini
 # Logs
 *.log
 
+# Generated data files
+data/
+
+# Personal/local notebooks
+LOU_NOTEBOOKS/
+
 # Project-internal files not intended for the public repo
 CLAUDE.md
 .claude/

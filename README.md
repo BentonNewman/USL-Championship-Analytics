@@ -17,6 +17,7 @@ Python notebooks that expand USL Championship data from the [American Soccer Ana
   - [Game Data](#usl_championship_game_dataipynb--games)
   - [Player Data](#usl_championship_player_dataipynb--players-gk_players)
   - [Team Data](#usl_championship_team_dataipynb--team_stats)
+  - [Visualizations](#usl_championship_visualizationsipynb--team_view)
 - [Setup](#setup)
 - [Using These as Templates](#using-these-as-templates)
 - [Adapting to Other Leagues](#adapting-to-other-leagues)
@@ -50,9 +51,10 @@ These notebooks target `uslc` by default. The `itscalledsoccer` package supports
 ## Project Structure
 
 ```
-USL_Championship_Game_Data.ipynb     Match results, xG, xPoints, weather, travel
-USL_Championship_Player_Data.ipynb   Outfield and goalkeeper player-season metrics
-USL_Championship_Team_Data.ipynb     Team-season aggregates and advanced metrics
+USL_Championship_Game_Data.ipynb         Match results, xG, xPoints, weather, travel
+USL_Championship_Player_Data.ipynb       Outfield and goalkeeper player-season metrics
+USL_Championship_Team_Data.ipynb         Team-season aggregates and advanced metrics
+USL_Championship_Visualizations.ipynb    Team-focused analysis layer built on the above
 ```
 
 ---
@@ -114,6 +116,19 @@ The `FOCUS_TEAM` constant at the top of the notebook (default: `LOU`) isolates a
 
 ---
 
+### `USL_Championship_Visualizations.ipynb` → `team_view`
+
+Team-focused analysis notebook that reads the parquet files produced by the three template notebooks and builds on them. Run the template notebooks at least once to populate `data/` before using this notebook.
+
+- `TEAM` constant (default: `LOU`) controls which team all frames and views are scoped to — change it once at the top and re-run
+- Derives `team_games` from the full `games` frame — all matches involving the selected team
+- Builds `team_view`: a flattened, team-perspective DataFrame that resolves every home/away column pair into a single team-neutral value — goals for/against, xGF/xGA, W/D/L result, points, season points, PPG, xPoints, game number, days rest, and travel distance
+- Serves as the starting point for further analysis: YoY comparisons, form tables, rolling averages, visualizations
+
+**`team_view` columns**: `is_home`, `opponent`, `manager`, `opponent_manager`, `referee`, `venue`, `venue_city`, `venue_state`, `gf`, `ga`, `goal_diff`, `result` (W/D/L), `pts`, `season_pts`, `ppg`, `xgf`, `xga`, `xg_diff`, `xresult`, `xpts`, `game_number`, `days_rest`, `travel_distance`, plus weather columns where available.
+
+---
+
 ## Setup
 
 ### Requirements
@@ -163,13 +178,15 @@ jupyter nbconvert --to notebook --execute USL_Championship_Game_Data.ipynb \
 
 ## Using These as Templates
 
-Each notebook ends with a `display(df.head())` call and is intentionally left without an analysis section. The pipelines produce clean, enriched DataFrames — everything after that is yours to build.
+The three template notebooks produce clean, enriched DataFrames and end with a `display(df.head())` call. `USL_Championship_Visualizations.ipynb` is the provided downstream analysis layer — built on top of those outputs and scoped to a single team via the `TEAM` constant.
 
 **Suggested workflow:**
 
-1. Run the notebook to build the canonical DataFrame
-2. Add analysis cells below — filtering, grouping, aggregating, visualizing, or exporting
-3. Change the `FOCUS_TEAM` constant in `USL_Championship_Team_Data.ipynb` to any team abbreviation to repoint the focus section
+1. Run the three template notebooks to populate `data/` with parquet files
+2. Open `USL_Championship_Visualizations.ipynb`, set `TEAM` to the desired team abbreviation, and run
+3. Add analysis cells below `team_view` — the flattened team-perspective DataFrame is the primary building block
+4. To change focus teams, update `TEAM` and re-run from that cell down — no need to re-run the data pipeline
+5. Change `FOCUS_TEAM` in `USL_Championship_Team_Data.ipynb` to repoint the league-wide team comparison section
 
 **Example — top teams by points per game:**
 
@@ -243,7 +260,7 @@ Full metric documentation: [americansocceranalysis.com](https://americansocceran
 - **Open-Meteo dependency**: The Game Data notebook depends on the [Open-Meteo](https://open-meteo.com) archive API for weather data. This is a separate free public service. Weather fetches gracefully degrade to `NaN` if the request fails.
 - **Future games**: The Game Data notebook filters to `status == "FullTime"`, so unplayed fixtures are excluded. Weather is only fetched for past dates.
 - **Notebook outputs are committed**: The `.ipynb` files include their last-executed output cells so the data is visible directly on GitHub without running anything. Re-execute locally to refresh against the latest API data.
-- **No analysis layer**: These are data-prep templates by design. They produce clean DataFrames and stop. Visualization, modeling, and reporting are intentionally left to downstream notebooks.
+- **Downstream analysis**: The three template notebooks are data-prep pipelines by design — they produce clean DataFrames and write parquet files. `USL_Championship_Visualizations.ipynb` is the provided analysis layer built on top of them. Add your own analysis cells there or create additional notebooks that read from `data/`.
 
 ---
 
