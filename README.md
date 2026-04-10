@@ -10,6 +10,8 @@ Python notebooks that expand USL Championship data from the [American Soccer Ana
 
 ## Table of Contents
 
+- [Quick Start](#quick-start)
+- [How It Works](#how-it-works)
 - [Data Source](#data-source)
 - [Data Coverage](#data-coverage)
 - [Project Structure](#project-structure)
@@ -25,6 +27,70 @@ Python notebooks that expand USL Championship data from the [American Soccer Ana
 - [Notes & Limitations](#notes--limitations)
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
+
+---
+
+## Quick Start
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Fetch all data and build the parquet cache (runs all three pipelines in parallel)
+python scripts/update_parquets.py
+
+# 3. Open the analysis notebook and start exploring
+jupyter notebook notebooks/USL_Championship_Visualizations.ipynb
+```
+
+Step 2 is the only step that requires an internet connection. Once `data/` is populated, the Visualizations notebook runs entirely from local parquet files — no API calls, fast iteration.
+
+To refresh data (new matches, updated metrics), re-run step 2.
+
+---
+
+## How It Works
+
+This project is structured in two tiers: a **data pipeline** that fetches and enriches raw API data, and an **analysis layer** that reads the results and builds on them.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  DATA PIPELINE  (run once, or to refresh)                   │
+│                                                             │
+│  ASA API (itscalledsoccer)                                  │
+│      │                                                      │
+│      ├── Game Data notebook   ──→  data/games.parquet       │
+│      ├── Player Data notebook ──→  data/players.parquet     │
+│      │                             data/gk_players.parquet  │
+│      └── Team Data notebook   ──→  data/team_stats.parquet  │
+│                                                             │
+│  scripts/update_parquets.py runs all three in parallel.     │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼  (parquet files are the boundary)
+┌─────────────────────────────────────────────────────────────┐
+│  ANALYSIS LAYER  (iterate freely, no API needed)            │
+│                                                             │
+│  USL_Championship_Visualizations.ipynb                      │
+│      Reads all four parquets, builds team_view, produces    │
+│      tables and visuals scoped to a single TEAM constant.   │
+│                                                             │
+│  scripts/utils.py                                           │
+│      Shared helpers imported by any notebook:               │
+│        render_table()    — styled matplotlib table          │
+│        resolve_team()    — team_id → abbreviation           │
+│        flatten_goals_added() — unnest Goals Added data      │
+│        assign_result()   — derive W/D/L from scores         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**The parquet files in `data/` are the handoff point.** The three pipeline notebooks write them; the Visualizations notebook reads them. This separation means:
+
+- You can explore and build visuals without waiting for API calls on every run.
+- Refreshing data is a single command (`update_parquets.py`) with no changes to the analysis notebook.
+- The pipeline notebooks can be re-run independently if only one data source needs updating.
+
+**Changing focus team:** Set `TEAM` at the top of `USL_Championship_Visualizations.ipynb` to any team abbreviation (e.g. `"PHX"`, `"SA"`, `"CIN"`) and re-run the notebook. No pipeline re-run needed. Team abbreviations follow ASA convention — see [Using These as Templates](#using-these-as-templates) for how to look them up.
 
 ---
 
@@ -58,7 +124,16 @@ notebooks/
   USL_Championship_Visualizations.ipynb    Team-focused analysis layer built on the above
 scripts/
   update_parquets.py                       Runs all three data notebooks in parallel
+  utils.py                                 Shared helpers (render_table, resolve_team, etc.)
 data/                                      Parquet outputs (gitignored, generated on run)
+```
+
+The notebooks import shared functions from `scripts/utils.py` rather than redefining them inline. Any notebook can use these helpers:
+
+```python
+import sys
+sys.path.insert(0, "../scripts")
+from utils import render_table, resolve_team, flatten_goals_added, assign_result
 ```
 
 ---
@@ -161,7 +236,17 @@ pip install -r requirements.txt
 uv pip install -r requirements.txt
 ```
 
-Dependencies are listed in [`requirements.txt`](requirements.txt) and are intentionally unpinned to support a range of recent versions. Pin them yourself if you need a fully reproducible environment.
+Dependencies are listed in [`requirements.txt`](requirements.txt) and are intentionally unpinned to support a range of recent versions. [`requirements-lock.txt`](requirements-lock.txt) provides a fully pinned snapshot for exact reproducibility.
+
+### Configure notebook git filter
+
+This repo uses [`nbstripout`](https://github.com/kynan/nbstripout) to strip notebook outputs automatically before each commit, keeping diffs readable. After installing dependencies, run once per clone:
+
+```bash
+nbstripout --install
+```
+
+This writes the filter into your local `.git/config` and does not affect notebook files themselves.
 
 ### Run a notebook
 

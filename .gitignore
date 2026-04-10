@@ -51,6 +51,10 @@ ASA_TO_DO_LIST.txt
 GAME_DATA_EXPANSION_IDEAS.txt
 TEAM_DATA_EXPANSION_IDEAS.txt
 REPO_OPTIMIZATION_IDEAS.txt
+OLD_VIZUALS_INVENTORY.txt
 get_stadia-UPDATE.ods
 out.csv
 OLD/
+
+# Test and development notebooks
+notebooks/TESTS/

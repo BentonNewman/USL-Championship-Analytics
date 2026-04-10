@@ -1,0 +1,27 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install lint dependencies
+        run: pip install ruff nbqa
+
+      - name: Ruff — lint scripts
+        run: ruff check scripts/
+
+      - name: Ruff — lint notebooks
+        run: nbqa ruff notebooks/
