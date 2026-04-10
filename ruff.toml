@@ -1,0 +1,5 @@
+[lint]
+# F821 (undefined name) fires on display() in every notebook because nbqa
+# cannot see Jupyter's IPython kernel namespace where display() is injected.
+# Suppressing globally is safe for this notebook-only project.
+extend-ignore = ["F821"]
