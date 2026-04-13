@@ -1,0 +1,228 @@
+================================================================================
+FUTURE CONSIDERATION — Table Rendering Package Alternatives
+================================================================================
+
+Status:   Deferred — evaluation notes for future reference
+Relates:  scripts/utils.py → render_table()
+          All notebooks using render_table()
+Context:  Current stack uses matplotlib.table. Evaluating whether an
+          alternative package would offer better options, flexibility,
+          and control for styled, publishable tables.
+
+================================================================================
+CURRENT STACK — matplotlib.table
+================================================================================
+
+How it's used:
+  render_table() in scripts/utils.py wraps matplotlib.table with:
+    - Alternating row colors
+    - Purple/gold accent color for header and title
+    - Per-column format strings (col_formats)
+    - Top-3 medal highlights per column (rank_cols)
+    - VamosMorados.com footer with generated date
+    - Auto-derived figsize from row/column count
+
+Pros:
+  - Already in the stack — zero new dependencies
+  - Full low-level control via fig/ax/cell objects
+  - Static PNG/PDF export is native and reliable
+  - Consistent with any other matplotlib charting in the project
+  - No environment setup beyond what's already installed
+
+Cons:
+  - Tables are a second-class citizen in matplotlib — the API was not
+    designed for styled publication tables
+  - No native image/logo support in cells (requires OffsetImage workaround,
+    see FUTURE_team_logos_in_tables.txt)
+  - No per-cell conditional formatting API — medal highlights required
+    building a manual (row, col) lookup dict
+  - Column widths are derived from content; fine-grained control is awkward
+  - Bounding box coordinates only available after fig.canvas.draw(), making
+    post-render overlays (logos, annotations) positionally fragile
+  - Limited support for column grouping, spanners, or multi-level headers
+  - No built-in text wrapping in cells
+
+================================================================================
+PACKAGE A — plottable
+================================================================================
+
+pip install plottable
+https://plottable.readthedocs.io
+
+What it is:
+  Purpose-built styled table library built on top of matplotlib. Designed
+  specifically for the kind of publication-quality static tables this project
+  produces.
+
+Pros:
+  - Native image-in-cell support via ColDef — solves the logo problem directly
+    without OffsetImage workarounds (see FUTURE_team_logos_in_tables.txt)
+  - ColDef per-column configuration: formatter, text alignment, width,
+    background color function, border, plot function
+  - Conditional cell coloring via a callable (fn: value -> color) — cleaner
+    and more readable than the current manual medal_cells dict approach
+  - Stays in the matplotlib ecosystem — same fig/ax paradigm, same
+    fig.savefig() export pipeline, same DPI handling
+  - Gradient/cmap coloring built in (useful for heatmap-style columns)
+  - Column width control is explicit and reliable
+  - Minimal caller-side migration: render_table() internals would be rewritten
+    around plottable, but all call sites (notebooks) stay unchanged
+
+Cons:
+  - New dependency — adds to the project's package requirements
+  - Smaller community and less documentation than core matplotlib
+  - Maintenance cadence is slower than matplotlib; fewer contributors
+  - Some reported layout issues with very wide or very tall tables
+  - Less battle-tested at edge cases (NaN handling, mixed types, etc.)
+  - ColDef API has a learning curve compared to the current simple dict-based
+    interface
+
+Migration cost: MEDIUM
+  render_table() internals replaced; all notebook call sites unchanged.
+  rank_cols and accent_color logic would be re-expressed as ColDef callables.
+  Logo support added as a natural ColDef feature rather than a workaround.
+
+================================================================================
+PACKAGE B — Great Tables (great_tables)
+================================================================================
+
+pip install great_tables
+https://posit-dev.github.io/great-tables/
+
+What it is:
+  Python port of R's {gt} package. The most fully-featured table formatting
+  library available in Python. Designed for publication and report tables.
+
+Pros:
+  - The most powerful option for complex styled tables available in Python
+  - Rich formatting API: tab_style(), tab_spanner(), tab_source_note(),
+    tab_footnote(), fmt_*() family of formatters
+  - Column spanners and grouped headers (e.g., "Attacking" spanning GF/xGF,
+    "Defensive" spanning GA/xGA) — not possible in current stack
+  - Native image, icon, and nanoplot (sparkline) support in cells
+  - Conditional formatting with a proper, readable API
+  - Actively maintained by Posit (formerly RStudio) with a growing Python
+    community
+  - Outputs can include source notes, footnotes, and table captions natively
+
+Cons:
+  - HTML-first output — the primary render target is HTML, not PNG/PDF
+  - Static image export requires a headless browser:
+      option 1: Chrome/Chromium via selenium or playwright
+      option 2: great_tables' built-in export calls webdriver internally
+    This is a significant environment dependency for a local notebook workflow
+  - Complete paradigm shift — nothing from the current render_table() carries
+    over; full rewrite required
+  - Heavier weight: more complex API, longer learning curve
+  - For simple tables (standings, match logs) the API is overkill
+  - Less suitable for rapid iteration during a season
+
+Migration cost: HIGH
+  Full rewrite of render_table() and potentially the export/display workflow.
+  Worth the investment only if publishing moves to HTML or a web platform,
+  or if tables become complex enough to need spanners and footnotes.
+
+================================================================================
+PACKAGE C — Plotly (plotly.graph_objects.Table)
+================================================================================
+
+pip install plotly
+
+Pros:
+  - Interactive by default: hover tooltips, column sorting in browser
+  - Good integration with Jupyter notebooks (inline display)
+  - Familiar if the project ever adds interactive dashboards
+
+Cons:
+  - Web/HTML-first — interactive features are wasted in a static workflow
+  - Static image export requires the kaleido package (another dependency)
+  - No real advantage over plottable for static publishable tables
+  - Conditional formatting and image support are limited compared to plottable
+    or Great Tables
+
+Verdict: NOT RECOMMENDED for this use case.
+
+================================================================================
+PACKAGE D — Pillow (PIL) — pure image composition
+================================================================================
+
+Pros:
+  - Absolute pixel-level control over every element
+  - No layout engine surprises
+
+Cons:
+  - Would require hand-drawing every cell border, background, text glyph,
+    and image placement from scratch
+  - Enormous implementation effort for no meaningful quality gain
+  - Loses all the DataFrame-awareness that render_table() provides
+
+Verdict: NOT RECOMMENDED. The effort-to-value ratio is not justified.
+
+================================================================================
+PACKAGE E — pandas Styler
+================================================================================
+
+Built into pandas (df.style).
+
+Pros:
+  - Zero new dependencies
+  - Easy conditional formatting and color scales
+  - Good for quick notebook exploration
+
+Cons:
+  - HTML output only — no static PNG/PDF export path
+  - Not suitable for the current publishing workflow
+
+Verdict: Useful for exploratory work in notebooks, not for final published
+tables.
+
+================================================================================
+SUMMARY TABLE
+================================================================================
+
+Package              | Fit  | Logo support | Cond. format | Export  | Cost
+---------------------|------|--------------|--------------|---------|------
+matplotlib.table     | OK   | Workaround   | Manual       | Native  | None
+plottable            | GOOD | Native       | Native       | Native  | Low
+Great Tables         | BEST | Native       | Native       | Browser | High
+Plotly               | POOR | Limited      | Limited      | kaleido | Med
+Pillow               | POOR | Manual       | Manual       | Native  | High
+pandas Styler        | POOR | No           | Good         | HTML    | None
+
+================================================================================
+RECOMMENDATION
+================================================================================
+
+Near term — migrate to plottable
+  plottable solves the two biggest current gaps (logos, conditional formatting)
+  without changing the export pipeline or adding heavy dependencies. It stays
+  in the matplotlib world, so accent_color, DPI settings, fig.savefig(), and
+  the footer text approach all carry over with minimal changes.
+
+  The migration path is clean:
+    1. pip install plottable (add to pyproject.toml)
+    2. Rewrite render_table() internals around plottable.Table
+    3. Re-express rank_cols as a ColDef background callable
+    4. Add logo support via ColDef (resolves FUTURE_team_logos_in_tables.txt)
+    5. All notebook call sites remain unchanged
+
+  Do this when implementing logos, since both changes touch render_table()
+  at the same time — one migration, two features.
+
+Long term — evaluate Great Tables if publishing moves to web/HTML
+  Great Tables produces the most polished output and supports advanced layout
+  features (column spanners, footnotes) that would benefit complex tables like
+  a full team scorecard. The headless browser export requirement is the only
+  real barrier. If the publishing workflow ever moves to HTML, a static site,
+  or a Quarto/Jupyter Book setup, Great Tables becomes the clear choice.
+
+================================================================================
+RELATED NOTES
+================================================================================
+
+  notes/FUTURE_team_logos_in_tables.txt
+    Details the OffsetImage workaround for logos under the current
+    matplotlib.table stack, and the recommended assets/logos/ structure.
+    The plottable migration would supersede the OffsetImage approach.
+
+================================================================================

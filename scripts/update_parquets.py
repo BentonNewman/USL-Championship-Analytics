@@ -1,4 +1,9 @@
-"""Execute the three USLC data notebooks in parallel and refresh all parquet files."""
+"""Execute the three USLC data notebooks in parallel and refresh all parquet files.
+
+Must be run via the uv project at ~/Documents/PYTHON — that venv holds jupyter:
+
+    cd ~/Documents/PYTHON && uv run python ~/Documents/CLAUDE_PROJECTS/ASA_SOCCER_DATA/scripts/update_parquets.py
+"""
 
 import logging
 import subprocess
@@ -19,7 +24,10 @@ NOTEBOOKS_DIR: Final[Path] = PROJECT_DIR / "notebooks"
 NOTEBOOK_OUTPUTS: Final[dict[str, list[str]]] = {
     "USL_Championship_Game_Data.ipynb": ["data/games.parquet"],
     "USL_Championship_Team_Data.ipynb": ["data/team_stats.parquet"],
-    "USL_Championship_Player_Data.ipynb": ["data/players.parquet", "data/gk_players.parquet"],
+    "USL_Championship_Player_Data.ipynb": [
+        "data/players.parquet",
+        "data/gk_players.parquet",
+    ],
 }
 
 

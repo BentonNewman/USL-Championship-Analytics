@@ -11,6 +11,9 @@ _PURPLE: str = "#400077"
 _GOLD: str = "#b28350"
 _ROW_EVEN: str = "#f5f0fa"
 _ROW_ODD: str = "#ffffff"
+_MEDAL_GOLD: str = "#FFD700"
+_MEDAL_SILVER: str = "#C0C0C0"
+_MEDAL_BRONZE: str = "#CD7F32"
 
 
 def resolve_team(val: str | list[str], team_map: dict[str, str]) -> str | float:
@@ -76,6 +79,8 @@ def render_table(
     title: str,
     col_formats: dict[str, str] | None = None,
     figsize: tuple[float, float] | None = None,
+    accent_color: str = _PURPLE,
+    rank_cols: dict[str, str] | None = None,
 ) -> plt.Figure:
     """Render a DataFrame as a styled matplotlib table.
 
@@ -87,6 +92,14 @@ def render_table(
             use default string conversion.
         figsize: Figure size in inches. Derived from table dimensions
             if None.
+        accent_color: Hex color for the header row and title. Defaults to
+            Louisville City purple. Pass ``"#b28350"`` for league-wide /
+            non-LOU visuals.
+        rank_cols: Optional map of column name → ``"high"`` or ``"low"``,
+            indicating which direction is best. The top 3 rows per column
+            receive gold / silver / bronze cell highlights. Ties share the
+            same medal (``rank(method="min")``). Columns absent from the
+            DataFrame are silently skipped.
 
     Returns:
         A matplotlib Figure ready for display or saving.
@@ -119,6 +132,27 @@ def render_table(
     if figsize is None:
         figsize = (max(6.0, n_cols * 1.4), max(1.5, n_rows * 0.42 + 0.6))
 
+    # Build medal lookup: (tbl_row_idx, col_idx) -> color.
+    # tbl_row_idx is 1-based because matplotlib reserves row 0 for headers.
+    # df must have a contiguous RangeIndex (reset_index(drop=True)) for the
+    # +1 offset to map correctly.
+    _medal_map: dict[int, str] = {1: _MEDAL_GOLD, 2: _MEDAL_SILVER, 3: _MEDAL_BRONZE}
+    medal_cells: dict[tuple[int, int], str] = {}
+    if rank_cols:
+        col_names = list(df.columns)
+        for col_name, direction in rank_cols.items():
+            if col_name not in col_names:
+                continue
+            col_idx = col_names.index(col_name)
+            ascending = direction == "low"
+            ranks = df[col_name].rank(
+                method="min", ascending=ascending, na_option="bottom"
+            )
+            for df_row_idx, rank_val in enumerate(ranks):
+                rank_int = int(rank_val)
+                if rank_int in _medal_map:
+                    medal_cells[(df_row_idx + 1, col_idx)] = _medal_map[rank_int]
+
     fig, ax = plt.subplots(figsize=figsize)
     ax.axis("off")
 
@@ -135,14 +169,16 @@ def render_table(
     tbl.auto_set_font_size(False)
     tbl.set_fontsize(10)
 
-    for (row_idx, _), cell in tbl.get_celld().items():
+    for (row_idx, col_idx), cell in tbl.get_celld().items():
         cell.set_text_props(ha="center")
         if row_idx == 0:
-            cell.set_facecolor(_PURPLE)
+            cell.set_facecolor(accent_color)
             cell.set_text_props(color="white", fontweight="bold", ha="center")
+        elif (row_idx, col_idx) in medal_cells:
+            cell.set_facecolor(medal_cells[(row_idx, col_idx)])
 
-    fig.suptitle(title, fontsize=13, fontweight="bold", color=_PURPLE, y=0.98)
-    fig.subplots_adjust(left=0.02, right=0.98, top=0.84, bottom=0.08)
+    fig.suptitle(title, fontsize=13, fontweight="bold", color=accent_color, y=0.98)
+    fig.subplots_adjust(left=0.02, right=0.98, top=0.93, bottom=0.04)
 
     today = datetime.date.today().strftime("%Y-%m-%d")
     fig.text(0.01, 0.025, "VamosMorados.com", ha="left", fontsize=8, color="gray")
