@@ -128,7 +128,7 @@ jupyter-events==0.12.0
     # via jupyter-server
 jupyter-lsp==2.3.1
     # via jupyterlab
-jupyter-server==2.17.0
+jupyter-server==2.18.0
     # via
     #   jupyter-lsp
     #   jupyterlab
@@ -137,7 +137,7 @@ jupyter-server==2.17.0
     #   notebook-shim
 jupyter-server-terminals==0.5.4
     # via jupyter-server
-jupyterlab==4.5.6
+jupyterlab==4.5.7
     # via
     #   jupyter
     #   notebook
@@ -159,7 +159,7 @@ matplotlib-inline==0.2.1
     # via
     #   ipykernel
     #   ipython
-mistune==3.2.0
+mistune==3.2.1
     # via nbconvert
 msgpack==1.1.2
     # via cachecontrol
@@ -324,7 +324,7 @@ tzdata==2026.1
     # via arrow
 uri-template==1.3.0
     # via jsonschema
-urllib3==2.6.3
+urllib3==2.7.0
     # via requests
 wcwidth==0.6.0
     # via prompt-toolkit
