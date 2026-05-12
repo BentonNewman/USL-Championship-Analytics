@@ -34,7 +34,7 @@ Python notebooks that expand USL Championship data from the [American Soccer Ana
 
 ```bash
 # 1. Install dependencies
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 
 # 2. Fetch all data and build the parquet cache (runs all three pipelines in parallel)
 python scripts/update_parquets.py
@@ -125,6 +125,7 @@ notebooks/
 scripts/
   update_parquets.py                       Runs all three data notebooks in parallel
   utils.py                                 Shared helpers (render_table, resolve_team, etc.)
+  archive_parquets.sh                      Archives parquet snapshots at season milestones
 data/                                      Parquet outputs (gitignored, generated on run)
 ```
 
