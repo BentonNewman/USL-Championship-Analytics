@@ -58,3 +58,12 @@ OLD/
 
 # Test and development notebooks
 notebooks/TESTS/
+
+# Brainstorming session files
+.superpowers/
+
+# Spin-off projects and analysis notebooks
+notebooks/LOU_notebooks/
+notebooks/USL_notebooks/
+images/scorecard/
+docs/
